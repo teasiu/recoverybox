@@ -16,8 +16,8 @@ on:
   #  branches: 
   #    - master
 
-  schedule:
-    - cron: 0 8 * * 5
+#  schedule:
+#    - cron: 0 8 * * 5
 
   #watch:
   #  types: [started]
@@ -47,13 +47,19 @@ jobs:
         make defconfig
         make -j$(nproc)
         make_ext4fs -l 64M -s bin/recoverybox64.ext4 build_dir/target-aarch64_generic_musl/root-armvirt
+        make clean
+        cp recoverybox32.config .config
+        make defconfig
+        make -j$(nproc)
+        make_ext4fs -l 64M -s bin/recoverybox32.ext4 build_dir/target-arm_cortex-a15+neon-vfpv4_musl_eabi/root-armvirt
 
     - name: Generate release tag
       id: tag
       run: |
         echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
         touch release.txt
-        echo "🔗 recoverybox for histb" >> release.txt
+        echo "🔗 recoverybox32 for histb" >> release.txt
+        echo "🔗 recoverybox64 for histb" >> release.txt
         echo "::set-output name=status::success"
 
     - name: Upload firmware to release
@@ -64,7 +70,7 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: bin/recoverybox64.ext4
+        files: bin/*.ext4
 
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
