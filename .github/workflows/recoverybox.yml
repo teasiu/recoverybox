@@ -41,7 +41,7 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a > /dev/null 2>&1
         cd feeds/luci
-        cat ../../0001-fix-index.patch | patch -p1
+        cat ../../0001-chgindex.patch | patch -p1
         cd -
         cp recoverybox64.config .config
         make defconfig
