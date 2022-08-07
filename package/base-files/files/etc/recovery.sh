@@ -21,6 +21,7 @@ if [ -f /mnt/fastboot.bin ];then
 	sync
 	umount /mnt
 fi
+flash_partition9
 [ "$arch" = "64" ] && suffix64="-64"
 dd of=/dev/mmcblk0p2 if=/etc/bootargs/bootargs9-${model}${suffix64}.bin bs=1024 count=1024
 dd of=/dev/mmcblk0p5 if=/etc/bootargs/logo.img bs=1024 count=4096
