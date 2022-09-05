@@ -9,10 +9,18 @@ r3=$(dd if=/dev/urandom bs=2 count=1 |hexdump -e '2/1 "%02x"')
 uci -q batch <<-EOF >/dev/null
 	set network.globals.ula_prefix=fd$r1:$r2:$r3::/48
 	set network.lan=interface
-	set network.lan.proto='dhcp'
+	set network.lan.proto='static'
+	set network.lan.ifname='eth0'
 	set network.lan._orig_ifname='eth0'
 	set network.lan._orig_bridge='false'
-	set network.lan.ifname='eth0'
+	set network.lan.type='bridge'
+	set network.lan.gateway='192.168.187.1'
+	set network.lan.ipaddr='192.168.187.199'
+	set network.lan.netmask='255.255.255.0'
+	set network.lan.dns='114.114.114.114'
+	set network.lan.ip6assign='60'
+	set network.lan.delegate='0'
+	set network.lan.force_link='0'
 	commit network
 EOF
 
