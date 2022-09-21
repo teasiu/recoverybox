@@ -1,13 +1,14 @@
 #!/bin/sh
 
 sleep 1
+model=$(sed 's/ /\n/g' /proc/cmdline | grep model| head -n 1| cut -d '=' -f2)
+echo "model=$model"
 
 flash_partition9() {
     mkdir -p /backup
 	mount -t ext4 /dev/mmcblk0p8 /backup
 	backup_file=$(ls /backup|grep ".*backup.*\.gz$"|head -1)
-	model=$(echo $backup_file|sed -r "s/backup-(.*?)-.*/\1/g")
-	arch=$(echo $backup_file|sed -r "s/backup-(.*?)-(.*)\.gz/\2/g")
+	arch=$(echo $backup_file|sed -r "s/backup-(.*?)\.gz/\1/g")
 	sleep 1
 	gunzip -c /backup/$backup_file | dd of=/dev/mmcblk0p9 bs=1024
 }
@@ -17,7 +18,7 @@ if [ -b /dev/sda1 ];then
 	mount /dev/sda1 /mnt
 fi
 if [ -f /mnt/fastboot.bin ];then
-	mv /mnt/fastboot.bin /mnt/fastboot_falshed.bin
+	#mv /mnt/fastboot.bin /mnt/fastboot_falshed.bin
 	sync
 	umount /mnt
 fi
