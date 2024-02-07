@@ -14,7 +14,7 @@ flash_partition9() {
 	mount -t ext4 /dev/mmcblk0p8 /backup
 	gunzip -c /backup/backup-$arch.gz | dd of=/dev/mmcblk0p9 bs=1024
 }
-
+echo "正在恢复系统刷机中，不要操作！不要断电！"
 flash_partition9
 
 dd of=/dev/mmcblk0p2 if=/etc/bootargs/bootargs9-${arch}.bin bs=1024 count=1024 conv=fsync
