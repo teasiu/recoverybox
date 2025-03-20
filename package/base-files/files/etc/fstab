@@ -1,1 +1,4 @@
 # <file system> <mount point> <type> <options> <dump> <pass>
+UUID=bd926918-dc3b-4e2e-9297-8835509e04ae  /      ext4  defaults,noatime,nodiratime,commit=600,errors=remount-ro  0 1
+UUID=af065ffb-cae4-44c2-ab9c-371261201abb  /boot  ext4  defaults  0 2
+tmpfs           /tmp     tmpfs    defaults,nosuid                                             0 0
