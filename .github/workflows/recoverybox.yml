@@ -41,6 +41,14 @@ jobs:
           exit 1
         fi
 
+    - name: Build and install make_ext4fs
+      run: |
+        git clone https://github.com/nmeum/android-tools.git
+        cd android-tools
+        make make_ext4fs
+        sudo cp out/make_ext4fs /usr/local/bin/
+        sudo chmod +x /usr/local/bin/make_ext4fs
+
     - name: Build 64bit & 32bit recoverybox
       run: |
         ./scripts/feeds update -a || { echo "feeds更新失败"; exit 1; }
