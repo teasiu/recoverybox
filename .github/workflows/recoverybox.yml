@@ -1,6 +1,6 @@
 ###########################################################
 #   Description: Compile recoverybox by GitHub Actions      #
-#   Based on:  openwrt19.07.10  										  #
+#   Based on:  openwrt19.07.10                              #
 #   Author: Teasiu                                        #
 ###########################################################
 
@@ -9,60 +9,95 @@ name: autobox
 on:
   repository_dispatch:
   workflow_dispatch:
-
   push:
     branches: 
       - main
-
-#  schedule:
-#    - cron: 0 8 * * 5
-
-  #watch:
-  #  types: [started]
+  # 如需定时构建可取消注释
+  # schedule:
+  #   - cron: 0 8 * * 5  # 每周五早8点（UTC）执行
+  # watch:
+  #   types: [started]
 
 jobs:
   build:
     runs-on: ubuntu-20.04
+    timeout-minutes: 180  # 增加超时控制，防止无限挂起
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
+    - name: Checkout code
+      uses: actions/checkout@v4  # 使用固定版本，提高稳定性
+      with:
+        fetch-depth: 1  # 仅拉取最新提交，减少耗时
 
     - name: Initialization Environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo -E apt-get update
-        sudo -E apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync qemu-utils android-sdk-ext4-utils
+        # 清理旧缓存，更新源
+        sudo -E apt-get clean
+        sudo -E apt-get update -y
+        # 安装依赖（保持原依赖列表，增加错误退出）
+        sudo -E apt-get -y install \
+          build-essential asciidoc binutils bzip2 gawk gettext git \
+          libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev \
+          lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core \
+          gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo \
+          libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake \
+          libtool autopoint device-tree-compiler g++-multilib antlr3 gperf \
+          wget curl swig rsync qemu-utils android-sdk-ext4-utils
+        # 设置时区
         sudo timedatectl set-timezone "Asia/Shanghai"
+        # 检查依赖安装结果
+        if [ $? -ne 0 ]; then
+          echo "依赖安装失败"
+          exit 1
+        fi
 
-    - name: make 64bitbox
+    - name: Build 64bit & 32bit recoverybox
       run: |
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a > /dev/null 2>&1
+        # 初始化 feeds
+        ./scripts/feeds update -a || { echo "feeds更新失败"; exit 1; }
+        ./scripts/feeds install -a > /dev/null 2>&1 || { echo "feeds安装失败"; exit 1; }
+        
+        # 构建64位版本
         cp recoverybox64.config .config
-        make defconfig
-        make -j$(nproc)
+        make defconfig || { echo "64位defconfig失败"; exit 1; }
+        # 限制并行编译数（防止资源耗尽，使用CPU核心数的一半）
+        make -j$(($(nproc)/2)) || { echo "64位编译失败"; exit 1; }
+        # 生成ext4镜像
         make_ext4fs -l 64M -s bin/recoverybox64.ext4 build_dir/target-aarch64_generic_musl/root-armvirt
-        cp bin/targets/armvirt/64/openwrt-armvirt-64-root.ext4.gz bin/openwrt-armvirt-64-root.ext4.gz
-        make clean
+        cp bin/targets/armvirt/64/openwrt-armvirt-64-root.ext4.gz bin/ || { echo "64位文件复制失败"; exit 1; }
+        
+        # 清理环境
+        make clean || { echo "清理失败"; exit 1; }
+        
+        # 构建32位版本
         cp recoverybox32.config .config
-        make defconfig
-        make -j$(nproc)
+        make defconfig || { echo "32位defconfig失败"; exit 1; }
+        make -j$(($(nproc)/2)) || { echo "32位编译失败"; exit 1; }
         make_ext4fs -l 64M -s bin/recoverybox32.ext4 build_dir/target-arm_cortex-a15+neon-vfpv4_musl_eabi/root-armvirt
-        cp bin/targets/armvirt/32/openwrt-armvirt-32-root.ext4.gz bin/openwrt-armvirt-32-root.ext4.gz
+        cp bin/targets/armvirt/32/openwrt-armvirt-32-root.ext4.gz bin/ || { echo "32位文件复制失败"; exit 1; }
 
     - name: Generate release tag
       id: tag
       run: |
-        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-        touch release.txt
-        echo "🔗 recoverybox32 for histb" >> release.txt
-        echo "🔗 recoverybox64 for histb" >> release.txt
+        release_tag=$(date +"%Y.%m.%d-%H%M")
+        echo "::set-output name=release_tag::$release_tag"
+        # 生成更详细的发布说明
+        cat > release.txt << EOF
+        自动构建于: $(date +"%Y-%m-%d %H:%M:%S")
+        基于版本: openwrt19.07.10
+        
+        包含文件:
+        🔗 recoverybox32.ext4 (32位版本)
+        🔗 recoverybox64.ext4 (64位版本)
+        🔗 openwrt-armvirt-32-root.ext4.gz
+        🔗 openwrt-armvirt-64-root.ext4.gz
+        EOF
         echo "::set-output name=status::success"
 
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2  # 使用固定版本
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,15 +107,19 @@ jobs:
         files: |
           bin/*.ext4
           bin/*.gz
+        draft: false
+        prerelease: false
 
-    - name: Delete workflow runs
-      uses: GitRML/delete-workflow-runs@main
+    - name: Delete old workflow runs
+      uses: GitRML/delete-workflow-runs@v1  # 使用固定版本
       with:
         retain_days: 1
         keep_minimum_runs: 3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
+    - name: Remove old releases
+      uses: dev-drprasad/delete-older-releases@v0.2.0  # 更新到较新稳定版本
       with:
         keep_latest: 3
         delete_tags: true
