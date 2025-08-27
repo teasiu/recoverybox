@@ -43,13 +43,12 @@ jobs:
 
     - name: Build and install make_ext4fs
       run: |
-        git clone https://github.com/nmeum/android-tools.git
-        cd android-tools
-        ./autogen.sh
-        ./configure
+        git clone https://github.com/openwrt/make_ext4fs
+        cd make_ext4fs
         make
-        sudo cp out/make_ext4fs /usr/local/bin/
+        sudo cp make_ext4fs /usr/local/bin/
         sudo chmod +x /usr/local/bin/make_ext4fs
+        cd -
 
     - name: Build 64bit & 32bit recoverybox
       run: |
