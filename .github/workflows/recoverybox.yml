@@ -61,6 +61,7 @@ jobs:
         make defconfig || { echo "64位defconfig失败"; exit 1; }
         make -j$(($(nproc)/2)) || { echo "64位编译失败"; exit 1; }
         make_ext4fs -l 64M -s bin/recoverybox64.ext4 build_dir/target-aarch64_generic_musl/root-armvirt
+        tar -zcvf bin/recoverybox64.tar.gz build_dir/target-aarch64_generic_musl/root-armvirt
         cp bin/targets/armvirt/64/openwrt-armvirt-64-root.ext4.gz bin/ || { echo "64位文件复制失败"; exit 1; }
         make clean || { echo "清理失败"; exit 1; }
         
@@ -69,6 +70,7 @@ jobs:
         make defconfig || { echo "32位defconfig失败"; exit 1; }
         make -j$(($(nproc)/2)) || { echo "32位编译失败"; exit 1; }
         make_ext4fs -l 64M -s bin/recoverybox32.ext4 build_dir/target-arm_cortex-a15+neon-vfpv4_musl_eabi/root-armvirt
+        tar -zcvf bin/recoverybox32.tar.gz build_dir/target-arm_cortex-a15+neon-vfpv4_musl_eabi/root-armvirt
         cp bin/targets/armvirt/32/openwrt-armvirt-32-root.ext4.gz bin/ || { echo "32位文件复制失败"; exit 1; }
 
     - name: Generate release tag
@@ -82,10 +84,12 @@ jobs:
         基于版本: openwrt19.07.10
         
         包含文件:
-        🔗 recoverybox32.ext4 (32位版本)
-        🔗 recoverybox64.ext4 (64位版本)
-        🔗 openwrt-armvirt-32-root.ext4.gz
-        🔗 openwrt-armvirt-64-root.ext4.gz
+        🔗 recoverybox32.ext4 (32位版本安卓模式)
+        🔗 recoverybox64.ext4 (64位版本安卓模式)
+        🔗 recoverybox32.tar.gz (32位版本根目录)
+        🔗 recoverybox64.tar.gz (64位版本根目录)
+        🔗 openwrt-armvirt-32-root.ext4.gz（img的gzip）
+        🔗 openwrt-armvirt-64-root.ext4.gz（img的gzip）
         EOF
         echo "status=success" >> $GITHUB_OUTPUT
 
